@@ -6,8 +6,10 @@ const titleField = document.querySelector("#title");
 const authorField = document.querySelector("#author");
 const status = document.querySelector("#status");
 const toReadList = document.querySelector("#to-read");
+const readingList = document.querySelector("#reading");
 const readList = document.querySelector("#read");
 const toReadEmpty = document.querySelector("#to-read-empty");
+const readingEmpty = document.querySelector("#reading-empty");
 const readEmpty = document.querySelector("#read-empty");
 
 let books = [];
@@ -66,8 +68,25 @@ function addRatingControl(item, book, index) {
   item.append(rating);
 }
 
+function addMoveButton(item, book, index, label, destination, sectionName) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.setAttribute("aria-label", `${label} книгу «${book.title}»`);
+  button.addEventListener("click", () => {
+    if (updateBook(index, { status: destination })) {
+      renderBooks();
+      status.textContent = `Книга «${book.title}» в разделе «${sectionName}».`;
+      status.tabIndex = -1;
+      status.focus();
+    }
+  });
+  item.append(button);
+}
+
 function renderBooks() {
   toReadList.replaceChildren();
+  readingList.replaceChildren();
   readList.replaceChildren();
 
   books.forEach((book, index) => {
@@ -83,29 +102,24 @@ function renderBooks() {
       item.append(author);
     }
 
-    if (book.read === true) {
+    // Books saved before the reading section only have the read flag.
+    const bookStatus = book.status ?? (book.read === true ? "read" : "to-read");
+    if (bookStatus === "read") {
       addRatingControl(item, book, index);
       readList.append(item);
       return;
     }
 
-    const markRead = document.createElement("button");
-    markRead.type = "button";
-    markRead.textContent = "Отметить прочитанной";
-    markRead.setAttribute("aria-label", `Отметить прочитанной книгу «${book.title}»`);
-    markRead.addEventListener("click", () => {
-      if (updateBook(index, { read: true })) {
-        renderBooks();
-        status.textContent = `Книга «${book.title}» в разделе «Прочитано».`;
-        status.tabIndex = -1;
-        status.focus();
-      }
-    });
-    item.append(markRead);
-    toReadList.append(item);
+    if (bookStatus !== "reading") {
+      addMoveButton(item, book, index, "Начать читать", "reading", "Читаю");
+    }
+    addMoveButton(item, book, index, "Отметить прочитанной", "read", "Прочитано");
+    const list = bookStatus === "reading" ? readingList : toReadList;
+    list.append(item);
   });
 
   toReadEmpty.hidden = toReadList.childElementCount > 0;
+  readingEmpty.hidden = readingList.childElementCount > 0;
   readEmpty.hidden = readList.childElementCount > 0;
 }
 
@@ -123,7 +137,7 @@ form.addEventListener("submit", (event) => {
   }
 
   const author = authorField.value.trim();
-  if (saveBooks([...books, { title, author, read: false }])) {
+  if (saveBooks([...books, { title, author, status: "to-read" }])) {
     form.reset();
     renderBooks();
     status.textContent = `Книга «${title}» добавлена.`;
