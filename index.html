@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Хочу прочитать</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>Хочу прочитать</h1>
+    <form id="book-form" class="panel">
+      <label for="title">Название</label>
+      <input id="title" name="title" required>
+      <label for="author">Автор (необязательно)</label>
+      <input id="author" name="author">
+      <button type="submit">Добавить</button>
+    </form>
+    <p id="status" role="status"></p>
+
+    <div class="shelves">
+      <section class="panel" aria-labelledby="to-read-heading">
+        <h2 id="to-read-heading">Хочу прочитать</h2>
+        <p id="to-read-empty" class="empty">Список пока пуст.</p>
+        <ul id="to-read"></ul>
+      </section>
+      <section class="panel" aria-labelledby="read-heading">
+        <h2 id="read-heading">Прочитано</h2>
+        <p id="read-empty" class="empty">Пока нет прочитанных книг.</p>
+        <ul id="read"></ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

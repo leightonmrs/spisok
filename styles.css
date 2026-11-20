@@ -1,0 +1,126 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  color: #24342c;
+  background: #f5f1e9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+}
+
+h1, h2 {
+  font-family: Georgia, serif;
+  margin: 0 0 1rem;
+}
+
+h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+.panel {
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid #d9d0bf;
+  border-radius: 1rem;
+  background: #fffcf6;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+form button {
+  justify-self: start;
+  margin-top: 0.5rem;
+}
+
+input, select, button {
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #758174;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  background: #285643;
+  border-color: #285643;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4233;
+}
+
+:focus-visible {
+  outline: 3px solid #966329;
+  outline-offset: 2px;
+}
+
+#status {
+  margin: 0.75rem 0;
+}
+
+.shelves {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 44rem) {
+  .shelves {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  overflow-wrap: anywhere;
+}
+
+li + li {
+  border-top: 1px solid #d9d0bf;
+}
+
+li:first-child {
+  padding-top: 0;
+}
+
+li:last-child {
+  padding-bottom: 0;
+}
+
+.empty, .author {
+  color: #525e54;
+  margin: 0;
+}
