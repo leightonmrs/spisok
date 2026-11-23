@@ -15,9 +15,59 @@
       <input id="title" name="title" required>
       <label for="author">Автор (необязательно)</label>
       <input id="author" name="author">
+      <label for="book-type">Тип</label>
+      <select id="book-type" name="type">
+        <option value="">Тип не указан</option>
+        <option value="print">Печатная книга</option>
+        <option value="ebook">Электронная книга</option>
+        <option value="audio">Аудиокнига</option>
+      </select>
       <button type="submit">Добавить</button>
     </form>
     <p id="status" role="status"></p>
+
+    <form id="view-options" class="panel view-options" aria-label="Фильтры и сортировка">
+      <div>
+        <label for="filter-type">Тип</label>
+        <select id="filter-type">
+          <option value="">Все типы</option>
+          <option value="unspecified">Не указан</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-rating">Оценка</label>
+        <select id="filter-rating">
+          <option value="">Все оценки</option>
+          <option value="unrated">Не оценено</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-status">Статус</label>
+        <select id="filter-status">
+          <option value="">Все статусы</option>
+          <option value="to-read">Хочу прочитать</option>
+          <option value="reading">Читаю</option>
+          <option value="read">Прочитано</option>
+        </select>
+      </div>
+      <div>
+        <label for="sort-books">Сортировка</label>
+        <select id="sort-books">
+          <option value="">По добавлению</option>
+          <option value="type">По типу</option>
+          <option value="rating-desc">Сначала высокие оценки</option>
+          <option value="rating-asc">Сначала низкие оценки</option>
+          <option value="status">По статусу</option>
+        </select>
+      </div>
+      <button type="reset">Сбросить</button>
+    </form>
+    <p id="no-results" class="panel" role="status" hidden>По выбранным фильтрам книг нет</p>
 
     <div class="shelves">
       <section class="panel" aria-labelledby="to-read-heading">

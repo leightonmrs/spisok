@@ -4,13 +4,26 @@ const storageKey = "books";
 const form = document.querySelector("#book-form");
 const titleField = document.querySelector("#title");
 const authorField = document.querySelector("#author");
+const typeField = document.querySelector("#book-type");
 const status = document.querySelector("#status");
-const toReadList = document.querySelector("#to-read");
-const readingList = document.querySelector("#reading");
-const readList = document.querySelector("#read");
-const toReadEmpty = document.querySelector("#to-read-empty");
-const readingEmpty = document.querySelector("#reading-empty");
-const readEmpty = document.querySelector("#read-empty");
+const viewOptions = document.querySelector("#view-options");
+const typeFilter = document.querySelector("#filter-type");
+const ratingFilter = document.querySelector("#filter-rating");
+const statusFilter = document.querySelector("#filter-status");
+const sortField = document.querySelector("#sort-books");
+const noResults = document.querySelector("#no-results");
+const shelves = document.querySelector(".shelves");
+const sections = ["to-read", "reading", "read"].map((key) => {
+  const list = document.getElementById(key);
+  return { key, list, panel: list.parentElement, empty: document.getElementById(`${key}-empty`) };
+});
+const typeLabels = new Map();
+for (const option of typeField.options) {
+  if (option.value) {
+    typeLabels.set(option.value, option.text);
+    typeFilter.add(new Option(option.text, option.value));
+  }
+}
 
 let books = [];
 try {
@@ -40,32 +53,48 @@ function updateBook(index, changes) {
   return saveBooks(updatedBooks);
 }
 
+function getRating(book) {
+  const score = book.rating;
+  return Number.isInteger(score) && score >= 1 && score <= 5 ? score : null;
+}
+
+function announce(message) {
+  status.textContent = message;
+  status.tabIndex = -1;
+  status.focus();
+}
+
 function addRatingControl(item, book, index) {
   const rating = document.createElement("select");
   rating.setAttribute("aria-label", `Оценка книги «${book.title}»`);
-  const placeholder = new Option("Без оценки", "");
+  const placeholder = new Option("Не оценено", "");
   placeholder.disabled = true;
   rating.add(placeholder);
   for (let score = 1; score <= 5; score++) {
     rating.add(new Option(`${score} из 5`, String(score)));
   }
 
-  const savedRating = book.rating;
-  rating.value = Number.isInteger(savedRating) && savedRating >= 1 && savedRating <= 5
-    ? String(savedRating)
-    : "";
+  rating.value = String(getRating(book) ?? "");
   rating.addEventListener("change", () => {
     const score = Number(rating.value);
     if (!Number.isInteger(score) || score < 1 || score > 5) {
       return;
     }
     if (updateBook(index, { rating: score })) {
-      status.textContent = `Оценка книги «${book.title}» сохранена.`;
+      const updatedRating = renderBooks(index);
+      const message = `Оценка книги «${book.title}» сохранена.`;
+      if (updatedRating) {
+        status.textContent = message;
+        updatedRating.focus();
+      } else {
+        announce(message);
+      }
     } else {
-      rating.value = String(books[index].rating ?? "");
+      rating.value = String(getRating(books[index]) ?? "");
     }
   });
   item.append(rating);
+  return rating;
 }
 
 function addMoveButton(item, book, index, label, destination, sectionName) {
@@ -76,20 +105,61 @@ function addMoveButton(item, book, index, label, destination, sectionName) {
   button.addEventListener("click", () => {
     if (updateBook(index, { status: destination })) {
       renderBooks();
-      status.textContent = `Книга «${book.title}» в разделе «${sectionName}».`;
-      status.tabIndex = -1;
-      status.focus();
+      announce(`Книга «${book.title}» в разделе «${sectionName}».`);
     }
   });
   item.append(button);
 }
 
-function renderBooks() {
-  toReadList.replaceChildren();
-  readingList.replaceChildren();
-  readList.replaceChildren();
+function renderBooks(focusedIndex) {
+  const selectedType = typeFilter.value;
+  const selectedRating = ratingFilter.value;
+  const selectedStatus = statusFilter.value;
+  const sort = sortField.value;
+  const filtering = Boolean(selectedType || selectedRating || selectedStatus);
+  const visibleBooks = books.map((book, index) => ({
+    book,
+    index,
+    // Books saved before the reading section only have the read flag.
+    key: book.status ?? (book.read === true ? "read" : "to-read"),
+    type: typeLabels.has(book.type) ? book.type : "unspecified",
+    score: getRating(book),
+  })).filter(({ key, type, score }) =>
+    (!selectedStatus || selectedStatus === key) &&
+    (!selectedType || selectedType === type) &&
+    (!selectedRating || selectedRating === (score === null ? "unrated" : String(score)))
+  );
 
-  books.forEach((book, index) => {
+  if (sort === "type") {
+    visibleBooks.sort((a, b) => {
+      const aLabel = typeLabels.get(a.type);
+      const bLabel = typeLabels.get(b.type);
+      if (!aLabel || !bLabel) {
+        return Number(!aLabel) - Number(!bLabel);
+      }
+      return aLabel.localeCompare(bLabel, "ru");
+    });
+  } else if (sort === "rating-desc" || sort === "rating-asc") {
+    const direction = sort === "rating-desc" ? -1 : 1;
+    visibleBooks.sort((a, b) => {
+      if (a.score === null || b.score === null) {
+        return Number(a.score === null) - Number(b.score === null);
+      }
+      return (a.score - b.score) * direction;
+    });
+  }
+
+  const orderedSections = sort === "status" ? [...sections].reverse() : sections;
+  for (const { key, list, panel } of orderedSections) {
+    list.replaceChildren();
+    panel.hidden = Boolean(selectedStatus && selectedStatus !== key);
+  }
+  if (shelves.firstElementChild !== orderedSections[0].panel) {
+    shelves.append(...orderedSections.map(({ panel }) => panel));
+  }
+
+  let focusedRating;
+  for (const { book, index, key, type } of visibleBooks) {
     const item = document.createElement("li");
     const title = document.createElement("strong");
     title.textContent = book.title;
@@ -102,26 +172,35 @@ function renderBooks() {
       item.append(author);
     }
 
-    // Books saved before the reading section only have the read flag.
-    const bookStatus = book.status ?? (book.read === true ? "read" : "to-read");
-    if (bookStatus === "read") {
-      addRatingControl(item, book, index);
-      readList.append(item);
-      return;
-    }
+    const typeLabel = document.createElement("p");
+    typeLabel.className = "book-type";
+    typeLabel.textContent = typeLabels.get(type) ?? "Тип не указан";
+    item.append(typeLabel);
 
-    if (bookStatus !== "reading") {
-      addMoveButton(item, book, index, "Начать читать", "reading", "Читаю");
+    if (key === "read") {
+      const rating = addRatingControl(item, book, index);
+      if (index === focusedIndex) {
+        focusedRating = rating;
+      }
+    } else {
+      if (key !== "reading") {
+        addMoveButton(item, book, index, "Начать читать", "reading", "Читаю");
+      }
+      addMoveButton(item, book, index, "Отметить прочитанной", "read", "Прочитано");
     }
-    addMoveButton(item, book, index, "Отметить прочитанной", "read", "Прочитано");
-    const list = bookStatus === "reading" ? readingList : toReadList;
+    const { list } = sections.find((section) => section.key === key) ?? sections[0];
     list.append(item);
-  });
+  }
 
-  toReadEmpty.hidden = toReadList.childElementCount > 0;
-  readingEmpty.hidden = readingList.childElementCount > 0;
-  readEmpty.hidden = readList.childElementCount > 0;
+  for (const { list, empty } of sections) {
+    empty.hidden = filtering || list.childElementCount > 0;
+  }
+  noResults.hidden = !filtering || visibleBooks.length > 0;
+  return focusedRating;
 }
+
+viewOptions.addEventListener("change", () => renderBooks());
+viewOptions.addEventListener("reset", () => queueMicrotask(() => renderBooks()));
 
 titleField.addEventListener("input", () => {
   titleField.setCustomValidity("");
@@ -137,7 +216,8 @@ form.addEventListener("submit", (event) => {
   }
 
   const author = authorField.value.trim();
-  if (saveBooks([...books, { title, author, status: "to-read" }])) {
+  const type = typeField.value;
+  if (saveBooks([...books, { title, author, type, status: "to-read" }])) {
     form.reset();
     renderBooks();
     status.textContent = `Книга «${title}» добавлена.`;

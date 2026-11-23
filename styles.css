@@ -82,6 +82,17 @@ button:hover {
   margin: 0.75rem 0;
 }
 
+.view-options {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.view-options > div {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .shelves {
   display: grid;
   gap: 1rem;
@@ -120,7 +131,7 @@ li:last-child {
   padding-bottom: 0;
 }
 
-.empty, .author {
+.empty, .author, .book-type {
   color: #525e54;
   margin: 0;
 }
