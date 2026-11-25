@@ -131,6 +131,24 @@ li:last-child {
   padding-bottom: 0;
 }
 
+.book-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.delete-book {
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+}
+
+.delete-book:hover {
+  background: #f5f1e9;
+}
+
 .empty, .author, .book-type {
   color: #525e54;
   margin: 0;

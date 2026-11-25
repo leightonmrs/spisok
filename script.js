@@ -111,6 +111,27 @@ function addMoveButton(item, book, index, label, destination, sectionName) {
   item.append(button);
 }
 
+function addDeleteButton(heading, book, index) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "delete-book";
+  button.textContent = "×";
+  button.setAttribute("aria-label", `Удалить книгу «${book.title}»`);
+  button.addEventListener("click", () => {
+    if (!window.confirm(`Удалить книгу «${book.title}»?`)) {
+      return;
+    }
+
+    const updatedBooks = books.slice();
+    updatedBooks.splice(index, 1);
+    if (saveBooks(updatedBooks)) {
+      renderBooks();
+      announce(`Книга «${book.title}» удалена.`);
+    }
+  });
+  heading.append(button);
+}
+
 function renderBooks(focusedIndex) {
   const selectedType = typeFilter.value;
   const selectedRating = ratingFilter.value;
@@ -161,9 +182,13 @@ function renderBooks(focusedIndex) {
   let focusedRating;
   for (const { book, index, key, type } of visibleBooks) {
     const item = document.createElement("li");
+    const heading = document.createElement("div");
+    heading.className = "book-heading";
     const title = document.createElement("strong");
     title.textContent = book.title;
-    item.append(title);
+    heading.append(title);
+    addDeleteButton(heading, book, index);
+    item.append(heading);
 
     if (book.author) {
       const author = document.createElement("p");
@@ -182,11 +207,15 @@ function renderBooks(focusedIndex) {
       if (index === focusedIndex) {
         focusedRating = rating;
       }
+      addMoveButton(item, book, index, "В раздел «Читаю»", "reading", "Читаю");
     } else {
       if (key !== "reading") {
         addMoveButton(item, book, index, "Начать читать", "reading", "Читаю");
       }
       addMoveButton(item, book, index, "Отметить прочитанной", "read", "Прочитано");
+    }
+    if (key !== "to-read") {
+      addMoveButton(item, book, index, "В раздел «Хочу прочитать»", "to-read", "Хочу прочитать");
     }
     const { list } = sections.find((section) => section.key === key) ?? sections[0];
     list.append(item);
