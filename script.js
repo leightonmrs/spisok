@@ -25,13 +25,17 @@ for (const option of typeField.options) {
   }
 }
 
-let books = [];
-try {
+function loadBooks() {
   const savedBooks = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
   if (!Array.isArray(savedBooks)) {
     throw new Error("Invalid book list");
   }
-  books = savedBooks;
+  return savedBooks;
+}
+
+let books = [];
+try {
+  books = loadBooks();
 } catch {
   status.textContent = "Не удалось загрузить список.";
 }
@@ -246,7 +250,14 @@ form.addEventListener("submit", (event) => {
 
   const author = authorField.value.trim();
   const type = typeField.value;
-  if (saveBooks([...books, { title, author, type, status: "to-read" }])) {
+  let savedBooks;
+  try {
+    savedBooks = loadBooks();
+  } catch {
+    status.textContent = "Не удалось загрузить список.";
+    return;
+  }
+  if (saveBooks([...savedBooks, { title, author, type, status: "to-read" }])) {
     form.reset();
     renderBooks();
     status.textContent = `Книга «${title}» добавлена.`;
