@@ -80,6 +80,7 @@ button:hover {
 
 #status {
   margin: 0.75rem 0;
+  overflow-wrap: anywhere;
 }
 
 .view-options {
