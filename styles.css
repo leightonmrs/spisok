@@ -99,6 +99,10 @@ button:hover {
   gap: 1rem;
 }
 
+.backup {
+  margin-top: 1rem;
+}
+
 @media (min-width: 52rem) {
   .shelves {
     grid-template-columns: repeat(3, minmax(0, 1fr));

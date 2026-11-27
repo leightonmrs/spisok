@@ -261,6 +261,25 @@ function renderBooks(focusedIndex, control = "rating") {
   return focusedControl;
 }
 
+document.querySelector("#download-backup").addEventListener("click", () => {
+  let savedBooks;
+  try {
+    savedBooks = loadBooks();
+  } catch {
+    announce("Не удалось скачать копию списка.");
+    return;
+  }
+
+  const contents = JSON.stringify({ version: 1, books: savedBooks }, null, 2);
+  const file = new Blob([contents], { type: "application/json" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "spisok-backup.json";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
 viewOptions.addEventListener("change", () => renderBooks());
 viewOptions.addEventListener("reset", () => queueMicrotask(() => renderBooks()));
 
