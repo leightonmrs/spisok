@@ -297,7 +297,51 @@ function isBackupBook(book) {
 
 const backupFile = document.querySelector("#backup-file");
 const backupPreview = document.querySelector("#backup-preview");
+const backupMatches = document.querySelector("#backup-matches");
+const backupMatchOptions = document.querySelector("#backup-match-options");
+const addFromBackup = document.querySelector("#add-from-backup");
 let previewRequest = 0;
+let previewBooks = [];
+const matchChoices = new Map();
+
+function bookMatchKey(book) {
+  const normalize = (text) => text.trim().toLocaleLowerCase("ru");
+  return JSON.stringify([normalize(book.title), normalize(book.author ?? "")]);
+}
+
+function findBackupMatches(currentBooks) {
+  const seen = new Set(currentBooks.map(bookMatchKey));
+  const matches = [];
+  previewBooks.forEach((book, index) => {
+    const key = bookMatchKey(book);
+    if (seen.has(key)) {
+      matches.push(index);
+    }
+    seen.add(key);
+  });
+  return matches;
+}
+
+function showBackupMatches(matches) {
+  const selected = new Set([...matchChoices].filter(([, input]) => input.checked).map(([index]) => index));
+  matchChoices.clear();
+  backupMatchOptions.replaceChildren();
+  backupMatches.hidden = matches.length === 0;
+  for (const index of matches) {
+    const book = previewBooks[index];
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = selected.has(index);
+    const text = document.createElement("span");
+    const section = document.getElementById(`${getBookStatus(book)}-heading`);
+    text.textContent = [book.title, book.author, typeLabels.get(book.type), section.textContent]
+      .filter(Boolean).join(" — ");
+    const label = document.createElement("label");
+    label.append(input, text);
+    backupMatchOptions.append(label);
+    matchChoices.set(index, input);
+  }
+}
 
 document.querySelector("#choose-backup").addEventListener("click", () => backupFile.click());
 backupFile.addEventListener("change", async () => {
@@ -307,10 +351,14 @@ backupFile.addEventListener("change", async () => {
   }
   backupFile.value = "";
   const request = ++previewRequest;
+  previewBooks = [];
+  showBackupMatches([]);
+  addFromBackup.hidden = true;
   backupPreview.hidden = false;
   backupPreview.textContent = "Читаем копию…";
 
   let message;
+  let validBooks;
   try {
     const backup = JSON.parse(await file.text());
     if (backup?.version !== backupVersion) {
@@ -323,12 +371,54 @@ backupFile.addEventListener("change", async () => {
         counts[getBookStatus(book)]++;
       }
       message = `Всего книг: ${backup.books.length}. Хочу прочитать: ${counts["to-read"]}. Читаю: ${counts.reading}. Прочитано: ${counts.read}.`;
+      validBooks = backup.books;
     }
   } catch {
     message = "Не удалось прочитать копию.";
   }
   if (request === previewRequest) {
     backupPreview.textContent = message;
+    if (validBooks?.length) {
+      try {
+        const currentBooks = loadBooks();
+        previewBooks = validBooks;
+        showBackupMatches(findBackupMatches(currentBooks));
+        addFromBackup.hidden = false;
+      } catch {
+        backupPreview.textContent = "Не удалось загрузить текущий список.";
+      }
+    }
+  }
+});
+
+addFromBackup.addEventListener("click", () => {
+  let currentBooks;
+  try {
+    currentBooks = loadBooks();
+  } catch {
+    announce("Не удалось загрузить текущий список.");
+    return;
+  }
+
+  const matches = findBackupMatches(currentBooks);
+  if (matches.some((index) => !matchChoices.has(index))) {
+    showBackupMatches(matches);
+    backupPreview.textContent = "Появились новые совпадения. Проверьте выбор.";
+    return;
+  }
+  const skipped = new Set(matches.filter((index) => !matchChoices.get(index).checked));
+  const addedBooks = previewBooks.filter((_, index) => !skipped.has(index));
+  if (addedBooks.length === 0) {
+    backupPreview.textContent = "Нет книг для добавления.";
+    return;
+  }
+  if (saveBooks([...currentBooks, ...addedBooks])) {
+    previewBooks = [];
+    showBackupMatches([]);
+    addFromBackup.hidden = true;
+    backupPreview.hidden = true;
+    renderBooks();
+    announce(`Добавлено книг: ${addedBooks.length}.`);
   }
 });
 

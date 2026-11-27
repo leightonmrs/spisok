@@ -91,6 +91,12 @@
       <button type="button" id="choose-backup">Выбрать копию</button>
       <input type="file" id="backup-file" accept=".json,application/json" hidden>
       <p id="backup-preview" role="status" hidden></p>
+      <fieldset id="backup-matches" hidden>
+        <legend>Совпадения</legend>
+        <p>Отметьте записи, которые хотите добавить.</p>
+        <div id="backup-match-options"></div>
+      </fieldset>
+      <button type="button" id="add-from-backup" hidden>Добавить из копии</button>
     </div>
   </main>
 </body>
