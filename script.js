@@ -26,12 +26,16 @@ for (const option of typeField.options) {
   }
 }
 
-function loadBooks() {
-  const savedBooks = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+function parseStoredBooks(stored) {
+  const savedBooks = JSON.parse(stored ?? "[]");
   if (!Array.isArray(savedBooks)) {
     throw new Error("Invalid book list");
   }
   return savedBooks;
+}
+
+function loadBooks() {
+  return parseStoredBooks(localStorage.getItem(storageKey));
 }
 
 let books = [];
@@ -401,14 +405,14 @@ backupFile.addEventListener("change", async () => {
   if (request === previewRequest) {
     backupPreview.textContent = message;
     if (validBooks) {
+      previewBooks = validBooks;
+      replaceFromBackup.hidden = false;
       try {
         const currentBooks = loadBooks();
-        previewBooks = validBooks;
         showBackupMatches(findBackupMatches(currentBooks));
         addFromBackup.hidden = validBooks.length === 0;
-        replaceFromBackup.hidden = false;
       } catch {
-        backupPreview.textContent = "Не удалось загрузить текущий список.";
+        backupPreview.textContent += " Текущий список не удалось прочитать.";
       }
     }
   }
@@ -447,14 +451,23 @@ replaceFromBackup.addEventListener("click", () => {
     return;
   }
   try {
-    const currentBooks = loadBooks();
+    const stored = localStorage.getItem(storageKey);
+    let currentCount;
+    try {
+      currentCount = parseStoredBooks(stored).length;
+    } catch {
+      // A valid backup can replace an unreadable list after confirmation.
+    }
+    const removal = currentCount === undefined
+      ? "Текущий список повреждён. Все его данные будут удалены. Число записей определить не удалось."
+      : `Все текущие записи будут удалены (${currentCount}).`;
     const message = previewBooks.length === 0
-      ? `Копия пуста. Все текущие записи будут удалены (${currentBooks.length}). В списке останется 0 книг. Продолжить?`
-      : `Заменить список? Будет удалено записей: ${currentBooks.length}. Будет восстановлено записей: ${previewBooks.length}.`;
+      ? `Копия пуста. ${removal} В списке останется 0 книг. Продолжить?`
+      : `Заменить список? ${removal} Будет восстановлено записей: ${previewBooks.length}.`;
     if (!window.confirm(message)) {
       return;
     }
-    if (JSON.stringify(loadBooks()) !== JSON.stringify(currentBooks)) {
+    if (localStorage.getItem(storageKey) !== stored) {
       backupPreview.textContent = "Список изменился. Нажмите «Заменить список» ещё раз.";
       return;
     }
