@@ -300,6 +300,7 @@ const backupPreview = document.querySelector("#backup-preview");
 const backupMatches = document.querySelector("#backup-matches");
 const backupMatchOptions = document.querySelector("#backup-match-options");
 const addFromBackup = document.querySelector("#add-from-backup");
+const replaceFromBackup = document.querySelector("#replace-from-backup");
 let previewRequest = 0;
 let previewBooks = [];
 const matchChoices = new Map();
@@ -343,6 +344,14 @@ function showBackupMatches(matches) {
   }
 }
 
+function clearBackupPreview() {
+  previewBooks = [];
+  showBackupMatches([]);
+  addFromBackup.hidden = true;
+  replaceFromBackup.hidden = true;
+  backupPreview.hidden = true;
+}
+
 document.querySelector("#choose-backup").addEventListener("click", () => backupFile.click());
 backupFile.addEventListener("change", async () => {
   const file = backupFile.files[0];
@@ -351,9 +360,7 @@ backupFile.addEventListener("change", async () => {
   }
   backupFile.value = "";
   const request = ++previewRequest;
-  previewBooks = [];
-  showBackupMatches([]);
-  addFromBackup.hidden = true;
+  clearBackupPreview();
   backupPreview.hidden = false;
   backupPreview.textContent = "Читаем копию…";
 
@@ -378,12 +385,13 @@ backupFile.addEventListener("change", async () => {
   }
   if (request === previewRequest) {
     backupPreview.textContent = message;
-    if (validBooks?.length) {
+    if (validBooks) {
       try {
         const currentBooks = loadBooks();
         previewBooks = validBooks;
         showBackupMatches(findBackupMatches(currentBooks));
-        addFromBackup.hidden = false;
+        addFromBackup.hidden = validBooks.length === 0;
+        replaceFromBackup.hidden = false;
       } catch {
         backupPreview.textContent = "Не удалось загрузить текущий список.";
       }
@@ -413,12 +421,38 @@ addFromBackup.addEventListener("click", () => {
     return;
   }
   if (saveBooks([...currentBooks, ...addedBooks])) {
-    previewBooks = [];
-    showBackupMatches([]);
-    addFromBackup.hidden = true;
-    backupPreview.hidden = true;
+    clearBackupPreview();
     renderBooks();
     announce(`Добавлено книг: ${addedBooks.length}.`);
+  }
+});
+
+replaceFromBackup.addEventListener("click", () => {
+  if (replaceFromBackup.hidden) {
+    return;
+  }
+  try {
+    const currentBooks = loadBooks();
+    const message = previewBooks.length === 0
+      ? `Копия пуста. Все текущие записи будут удалены (${currentBooks.length}). В списке останется 0 книг. Продолжить?`
+      : `Заменить список? Будет удалено записей: ${currentBooks.length}. Будет восстановлено записей: ${previewBooks.length}.`;
+    if (!window.confirm(message)) {
+      return;
+    }
+    if (JSON.stringify(loadBooks()) !== JSON.stringify(currentBooks)) {
+      backupPreview.textContent = "Список изменился. Нажмите «Заменить список» ещё раз.";
+      return;
+    }
+  } catch {
+    announce("Не удалось загрузить текущий список.");
+    return;
+  }
+
+  const restoredCount = previewBooks.length;
+  if (saveBooks(previewBooks)) {
+    clearBackupPreview();
+    renderBooks();
+    announce(`Восстановлено книг: ${restoredCount}.`);
   }
 });
 
