@@ -68,6 +68,35 @@ function announce(message) {
   status.focus();
 }
 
+function addTypeControl(item, book, index) {
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", `Тип книги «${book.title}»`);
+  const unspecified = new Option("Тип не указан", "");
+  unspecified.disabled = true;
+  select.add(unspecified);
+  for (const [value, label] of typeLabels) {
+    select.add(new Option(label, value));
+  }
+  const currentType = typeLabels.has(book.type) ? book.type : "";
+  select.value = currentType;
+  select.addEventListener("change", () => {
+    if (!updateBook(index, { type: select.value })) {
+      select.value = currentType;
+      return;
+    }
+    const updatedControl = renderBooks(index, "type");
+    const message = `Тип книги «${book.title}» сохранён.`;
+    if (updatedControl) {
+      status.textContent = message;
+      updatedControl.focus();
+    } else {
+      announce(message);
+    }
+  });
+  item.append(select);
+  return select;
+}
+
 function addRatingControl(item, book, index) {
   const rating = document.createElement("select");
   rating.setAttribute("aria-label", `Оценка книги «${book.title}»`);
@@ -136,7 +165,7 @@ function addDeleteButton(heading, book, index) {
   heading.append(button);
 }
 
-function renderBooks(focusedIndex) {
+function renderBooks(focusedIndex, control = "rating") {
   const selectedType = typeFilter.value;
   const selectedRating = ratingFilter.value;
   const selectedStatus = statusFilter.value;
@@ -183,8 +212,8 @@ function renderBooks(focusedIndex) {
     shelves.append(...orderedSections.map(({ panel }) => panel));
   }
 
-  let focusedRating;
-  for (const { book, index, key, type } of visibleBooks) {
+  let focusedControl;
+  for (const { book, index, key } of visibleBooks) {
     const item = document.createElement("li");
     const heading = document.createElement("div");
     heading.className = "book-heading";
@@ -201,15 +230,15 @@ function renderBooks(focusedIndex) {
       item.append(author);
     }
 
-    const typeLabel = document.createElement("p");
-    typeLabel.className = "book-type";
-    typeLabel.textContent = typeLabels.get(type) ?? "Тип не указан";
-    item.append(typeLabel);
+    const typeControl = addTypeControl(item, book, index);
+    if (index === focusedIndex && control === "type") {
+      focusedControl = typeControl;
+    }
 
     if (key === "read") {
       const rating = addRatingControl(item, book, index);
-      if (index === focusedIndex) {
-        focusedRating = rating;
+      if (index === focusedIndex && control === "rating") {
+        focusedControl = rating;
       }
       addMoveButton(item, book, index, "В раздел «Читаю»", "reading", "Читаю");
     } else {
@@ -229,7 +258,7 @@ function renderBooks(focusedIndex) {
     empty.hidden = filtering || list.childElementCount > 0;
   }
   noResults.hidden = !filtering || visibleBooks.length > 0;
-  return focusedRating;
+  return focusedControl;
 }
 
 viewOptions.addEventListener("change", () => renderBooks());

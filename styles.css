@@ -150,7 +150,7 @@ li:last-child {
   background: #f5f1e9;
 }
 
-.empty, .author, .book-type {
+.empty, .author {
   color: #525e54;
   margin: 0;
 }
