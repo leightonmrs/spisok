@@ -16,7 +16,8 @@ const noResults = document.querySelector("#no-results");
 const shelves = document.querySelector(".shelves");
 const sections = ["to-read", "reading", "read"].map((key) => {
   const list = document.getElementById(key);
-  return { key, list, panel: list.parentElement, empty: document.getElementById(`${key}-empty`) };
+  const empty = document.getElementById(`${key}-empty`);
+  return { key, list, panel: list.parentElement, empty, emptyMessage: empty.textContent };
 });
 const typeLabels = new Map();
 for (const option of typeField.options) {
@@ -278,10 +279,12 @@ function renderBooks(focusedIndex, control = "rating") {
     list.append(item);
   }
 
-  for (const { list, empty } of sections) {
-    empty.hidden = filtering || list.childElementCount > 0;
+  const noMatches = filtering && visibleBooks.length === 0;
+  for (const { list, empty, emptyMessage } of sections) {
+    empty.textContent = filtering ? "Нет подходящих книг" : emptyMessage;
+    empty.hidden = noMatches || list.childElementCount > 0;
   }
-  noResults.hidden = !filtering || visibleBooks.length > 0;
+  noResults.hidden = !noMatches;
   return focusedControl;
 }
 
