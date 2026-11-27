@@ -53,8 +53,23 @@ function saveBooks(updatedBooks) {
 }
 
 function updateBook(index, changes) {
-  const updatedBooks = books.slice();
-  updatedBooks[index] = { ...books[index], ...changes };
+  let updatedBooks;
+  try {
+    updatedBooks = loadBooks();
+  } catch {
+    announce("Не удалось загрузить текущий список.");
+    return false;
+  }
+
+  // Appended books preserve the indexes used by the current cards.
+  if (JSON.stringify(updatedBooks.slice(0, books.length)) !== JSON.stringify(books)) {
+    books = updatedBooks;
+    renderBooks();
+    announce("Список изменился в другой вкладке. Повторите действие.");
+    return false;
+  }
+
+  updatedBooks[index] = { ...updatedBooks[index], ...changes };
   return saveBooks(updatedBooks);
 }
 
@@ -129,7 +144,7 @@ function addRatingControl(item, book, index) {
         announce(message);
       }
     } else {
-      rating.value = String(getRating(books[index]) ?? "");
+      rating.value = String(getRating(book) ?? "");
     }
   });
   item.append(rating);
