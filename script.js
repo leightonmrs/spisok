@@ -1,6 +1,7 @@
 "use strict";
 
 const storageKey = "books";
+const backupVersion = 1;
 const form = document.querySelector("#book-form");
 const titleField = document.querySelector("#title");
 const authorField = document.querySelector("#author");
@@ -60,6 +61,11 @@ function updateBook(index, changes) {
 function getRating(book) {
   const score = book.rating;
   return Number.isInteger(score) && score >= 1 && score <= 5 ? score : null;
+}
+
+function getBookStatus(book) {
+  // Books saved before the reading section only have the read flag.
+  return book.status ?? (book.read === true ? "read" : "to-read");
 }
 
 function announce(message) {
@@ -174,8 +180,7 @@ function renderBooks(focusedIndex, control = "rating") {
   const visibleBooks = books.map((book, index) => ({
     book,
     index,
-    // Books saved before the reading section only have the read flag.
-    key: book.status ?? (book.read === true ? "read" : "to-read"),
+    key: getBookStatus(book),
     type: typeLabels.has(book.type) ? book.type : "unspecified",
     score: getRating(book),
   })).filter(({ key, type, score }) =>
@@ -270,7 +275,7 @@ document.querySelector("#download-backup").addEventListener("click", () => {
     return;
   }
 
-  const contents = JSON.stringify({ version: 1, books: savedBooks }, null, 2);
+  const contents = JSON.stringify({ version: backupVersion, books: savedBooks }, null, 2);
   const file = new Blob([contents], { type: "application/json" });
   const url = URL.createObjectURL(file);
   const link = document.createElement("a");
@@ -278,6 +283,53 @@ document.querySelector("#download-backup").addEventListener("click", () => {
   link.download = "spisok-backup.json";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+function isBackupBook(book) {
+  return book !== null && typeof book === "object" &&
+    typeof book.title === "string" && Boolean(book.title.trim()) &&
+    (book.author === undefined || typeof book.author === "string") &&
+    (book.type === undefined || book.type === "" || typeLabels.has(book.type)) &&
+    (book.status === undefined || sections.some(({ key }) => key === book.status)) &&
+    (book.read === undefined || typeof book.read === "boolean") &&
+    (book.rating == null || getRating(book) !== null);
+}
+
+const backupFile = document.querySelector("#backup-file");
+const backupPreview = document.querySelector("#backup-preview");
+let previewRequest = 0;
+
+document.querySelector("#choose-backup").addEventListener("click", () => backupFile.click());
+backupFile.addEventListener("change", async () => {
+  const file = backupFile.files[0];
+  if (!file) {
+    return;
+  }
+  backupFile.value = "";
+  const request = ++previewRequest;
+  backupPreview.hidden = false;
+  backupPreview.textContent = "Читаем копию…";
+
+  let message;
+  try {
+    const backup = JSON.parse(await file.text());
+    if (backup?.version !== backupVersion) {
+      message = "Неподдерживаемый формат копии.";
+    } else if (!Array.isArray(backup.books) || !backup.books.every(isBackupBook)) {
+      message = "В копии есть некорректные данные.";
+    } else {
+      const counts = { "to-read": 0, reading: 0, read: 0 };
+      for (const book of backup.books) {
+        counts[getBookStatus(book)]++;
+      }
+      message = `Всего книг: ${backup.books.length}. Хочу прочитать: ${counts["to-read"]}. Читаю: ${counts.reading}. Прочитано: ${counts.read}.`;
+    }
+  } catch {
+    message = "Не удалось прочитать копию.";
+  }
+  if (request === previewRequest) {
+    backupPreview.textContent = message;
+  }
 });
 
 viewOptions.addEventListener("change", () => renderBooks());

@@ -103,6 +103,14 @@ button:hover {
   margin-top: 1rem;
 }
 
+.backup button {
+  margin-bottom: 0.5rem;
+}
+
+#backup-preview {
+  margin: 0.5rem 0 0;
+}
+
 @media (min-width: 52rem) {
   .shelves {
     grid-template-columns: repeat(3, minmax(0, 1fr));
